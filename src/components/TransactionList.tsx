@@ -26,8 +26,7 @@ export default function TransactionList() {
       .limit(100);
 
     if (filter === "transfer") {
-      // Transfers are expense + income pairs with same description and date
-      query = query.is("category_id", null);
+      query = query.eq("type", "transfer");
     } else if (filter !== "all") {
       query = query.eq("type", filter);
     }
@@ -54,16 +53,21 @@ export default function TransactionList() {
     for (let i = 0; i < txns.length; i++) {
       if (used.has(txns[i].id)) continue;
       const t = txns[i];
-      // Find matching pair (same date, opposite type, no category)
+      // Find the linked pair via transfer_from/transfer_to (both are transfer type)
       const pair = txns.find(
-        (p) => !used.has(p.id) && p.id !== t.id && p.transaction_date === t.transaction_date && p.type !== t.type && !p.category_id
+        (p) =>
+          !used.has(p.id) &&
+          p.id !== t.id &&
+          p.type === "transfer" &&
+          (p.transfer_to === t.account_id || p.transfer_from === t.account_id)
       );
       if (pair) {
         used.add(t.id);
         used.add(pair.id);
-        // Return the expense side as the main transaction with transfer info
+        // The "from" side is the one that has transfer_to pointing at the pair's account
+        const fromSide = t.transfer_to ? t : pair;
         pairs.push({
-          ...t,
+          ...fromSide,
           transfer_pair: pair,
         } as Transaction & { transfer_pair: Transaction });
       } else {
@@ -84,44 +88,43 @@ export default function TransactionList() {
 
     if (!txn) return;
 
-    // If it's a transfer (no category), find and delete the pair
-    if (!txn.category_id && txn.type === "expense") {
+    if (txn.type === "transfer") {
+      // Find the linked pair
       const { data: pair } = await supabase
         .from("transactions")
-        .select("id, account_id, amount, type")
-        .eq("transaction_date", txn.transaction_date)
-        .eq("type", "income")
-        .is("category_id", null)
+        .select("id, account_id, amount")
+        .eq("type", "transfer")
         .neq("id", id)
+        .or(`transfer_to.eq.${txn.account_id},transfer_from.eq.${txn.account_id}`)
         .limit(1)
         .single();
 
       if (pair) {
-        // Reverse both balances
-        const [accFrom, accTo] = await Promise.all([
+        // The deleted side determines which account was debited
+        const [accA, accB] = await Promise.all([
           supabase.from("accounts").select("balance").eq("id", txn.account_id).single(),
           supabase.from("accounts").select("balance").eq("id", pair.account_id).single(),
         ]);
-        if (accFrom.data) await supabase.from("accounts").update({ balance: accFrom.data.balance + txn.amount }).eq("id", txn.account_id);
-        if (accTo.data) await supabase.from("accounts").update({ balance: accTo.data.balance - pair.amount }).eq("id", pair.account_id);
+        // If this side transferred out (transfer_to set), it was debited
+        const thisDebited = txn.transfer_to;
+        if (accA.data) {
+          await supabase.from("accounts").update({
+            balance: accA.data.balance + (thisDebited ? txn.amount : -txn.amount),
+          }).eq("id", txn.account_id);
+        }
+        if (accB.data) {
+          await supabase.from("accounts").update({
+            balance: accB.data.balance + (thisDebited ? -pair.amount : pair.amount),
+          }).eq("id", pair.account_id);
+        }
         await supabase.from("transactions").delete().eq("id", pair.id);
+      } else {
+        // Unpaired transfer - just reverse this account
+        const acc = await supabase.from("accounts").select("balance").eq("id", txn.account_id).single();
+        const reverse = txn.transfer_to ? txn.amount : -txn.amount;
+        if (acc.data) await supabase.from("accounts").update({ balance: acc.data.balance + reverse }).eq("id", txn.account_id);
       }
-    } else if (!txn.category_id && txn.type === "income") {
-      // Transfer income side deleted - also delete expense pair
-      const { data: pair } = await supabase
-        .from("transactions")
-        .select("id")
-        .eq("transaction_date", txn.transaction_date)
-        .eq("type", "expense")
-        .is("category_id", null)
-        .neq("id", id)
-        .limit(1)
-        .single();
-      if (pair) await supabase.from("transactions").delete().eq("id", pair.id);
-
-      const acc = await supabase.from("accounts").select("balance").eq("id", txn.account_id).single();
-      if (acc.data) await supabase.from("accounts").update({ balance: acc.data.balance - txn.amount }).eq("id", txn.account_id);
-    } else {
+    } else if (txn.type !== "transfer") {
       // Regular income/expense
       const delta = txn.type === "income" ? -txn.amount : txn.amount;
       const acc = await supabase.from("accounts").select("balance").eq("id", txn.account_id).single();
@@ -145,7 +148,7 @@ export default function TransactionList() {
   }
 
   function isTransfer(t: Transaction) {
-    return !t.category_id && t.type === "expense";
+    return t.type === "transfer";
   }
 
   return (

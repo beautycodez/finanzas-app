@@ -56,13 +56,18 @@ export default function TransactionForm({ onTransactionAdded }: Props) {
         return;
       }
 
-      // Create transfer-out transaction
+      // Create transfer-out transaction (from account)
+      const fromName = accounts.find((a) => a.id === fromId)?.name || "cuenta";
+      const toName = accounts.find((a) => a.id === toId)?.name || "cuenta";
+      const baseDesc = description || "";
+
       const { error: err1 } = await supabase.from("transactions").insert({
         account_id: fromId,
         category_id: null,
         amount: txnAmount,
-        type: "expense",
-        description: description || `Transferencia a ${accounts.find((a) => a.id === toId)?.name || "cuenta"}`,
+        type: "transfer",
+        description: baseDesc || `Transferencia a ${toName}`,
+        transfer_to: toId,
         transaction_date: date,
       });
 
@@ -72,13 +77,14 @@ export default function TransactionForm({ onTransactionAdded }: Props) {
         return;
       }
 
-      // Create transfer-in transaction
+      // Create transfer-in transaction (to account)
       const { error: err2 } = await supabase.from("transactions").insert({
         account_id: toId,
         category_id: null,
         amount: txnAmount,
-        type: "income",
-        description: description || `Transferencia de ${accounts.find((a) => a.id === fromId)?.name || "cuenta"}`,
+        type: "transfer",
+        description: baseDesc || `Transferencia de ${fromName}`,
+        transfer_from: fromId,
         transaction_date: date,
       });
 

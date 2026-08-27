@@ -33,11 +33,46 @@ export default function AccountTransactions({ accountId, currency = "USD" }: Pro
 
     const { data: txn } = await supabase
       .from("transactions")
-      .select("account_id, amount, type")
+      .select("*")
       .eq("id", id)
       .single();
 
-    if (txn) {
+    if (!txn) return;
+
+    if (txn.type === "transfer") {
+      // Find the linked pair
+      const { data: pair } = await supabase
+        .from("transactions")
+        .select("id, account_id, amount")
+        .eq("type", "transfer")
+        .neq("id", id)
+        .or(`transfer_to.eq.${txn.account_id},transfer_from.eq.${txn.account_id}`)
+        .limit(1)
+        .single();
+
+      if (pair) {
+        const [accA, accB] = await Promise.all([
+          supabase.from("accounts").select("balance").eq("id", txn.account_id).single(),
+          supabase.from("accounts").select("balance").eq("id", pair.account_id).single(),
+        ]);
+        const thisDebited = txn.transfer_to;
+        if (accA.data) {
+          await supabase.from("accounts").update({
+            balance: accA.data.balance + (thisDebited ? txn.amount : -txn.amount),
+          }).eq("id", txn.account_id);
+        }
+        if (accB.data) {
+          await supabase.from("accounts").update({
+            balance: accB.data.balance + (thisDebited ? -pair.amount : pair.amount),
+          }).eq("id", pair.account_id);
+        }
+        await supabase.from("transactions").delete().eq("id", pair.id);
+      } else {
+        const acc = await supabase.from("accounts").select("balance").eq("id", txn.account_id).single();
+        const reverse = txn.transfer_to ? txn.amount : -txn.amount;
+        if (acc.data) await supabase.from("accounts").update({ balance: acc.data.balance + reverse }).eq("id", txn.account_id);
+      }
+    } else {
       const delta = txn.type === "income" ? -txn.amount : txn.amount;
       const { data: account } = await supabase
         .from("accounts")
@@ -106,21 +141,26 @@ export default function AccountTransactions({ accountId, currency = "USD" }: Pro
               {formatDate(group.date)}
             </p>
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-50">
-              {group.items.map((txn) => (
+              {group.items.map((txn) => {
+                const transfer = txn.type === "transfer";
+                const debited = transfer && !!txn.transfer_to;
+                return (
                 <div
                   key={txn.id}
                   className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                      style={{ backgroundColor: txn.categories?.color || "#94a3b8" }}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 ${
+                        transfer ? "bg-blue-500" : "bg-transparent"
+                      }`}
+                      style={transfer ? undefined : { backgroundColor: txn.categories?.color || "#94a3b8" }}
                     >
-                      {txn.type === "income" ? "+" : "-"}
+                      {transfer ? "⇄" : txn.type === "income" ? "+" : "-"}
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium text-gray-800 truncate">
-                        {txn.categories?.name || "Sin categoria"}
+                        {transfer ? "Transferencia" : (txn.categories?.name || "Sin categoria")}
                       </p>
                       {txn.description && (
                         <p className="text-sm text-gray-500 truncate">{txn.description}</p>
@@ -130,10 +170,10 @@ export default function AccountTransactions({ accountId, currency = "USD" }: Pro
                   <div className="flex items-center gap-3 shrink-0">
                     <p
                       className={`font-semibold ${
-                        txn.type === "income" ? "text-green-600" : "text-red-600"
+                        transfer ? "text-blue-600" : txn.type === "income" ? "text-green-600" : "text-red-600"
                       }`}
                     >
-                      {txn.type === "income" ? "+" : "-"}
+                      {!transfer && (txn.type === "income" ? "+" : "-")}
                       {formatCurrency(txn.amount)}
                     </p>
                     <button
@@ -147,7 +187,8 @@ export default function AccountTransactions({ accountId, currency = "USD" }: Pro
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))

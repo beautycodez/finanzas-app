@@ -18,10 +18,12 @@ export interface Category {
 export interface Transaction {
   id: number;
   account_id: number;
-  category_id: number;
+  category_id: number | null;
   amount: number;
   type: "income" | "expense" | "transfer";
   description: string | null;
+  transfer_from: number | null;
+  transfer_to: number | null;
   transaction_date: string;
   created_at: string;
   categories?: Category;

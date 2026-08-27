@@ -91,7 +91,7 @@ export default function ReportsPage() {
         totalExpenses += t.amount;
         if (!expMap[name]) expMap[name] = { total: 0, color };
         expMap[name].total += t.amount;
-      } else {
+      } else if (t.type === "income") {
         totalIncome += t.amount;
         if (!incMap[name]) incMap[name] = { total: 0, color };
         incMap[name].total += t.amount;
@@ -116,7 +116,7 @@ export default function ReportsPage() {
       const m = t.transaction_date.substring(0, 7);
       if (!monthMap[m]) monthMap[m] = { income: 0, expense: 0 };
       if (t.type === "income") monthMap[m].income += t.amount;
-      else monthMap[m].expense += t.amount;
+      else if (t.type === "expense") monthMap[m].expense += t.amount;
     }
 
     setMonthlyTrend(

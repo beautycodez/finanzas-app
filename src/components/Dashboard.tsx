@@ -41,7 +41,7 @@ export default function Dashboard() {
       if (!map[cur]) map[cur] = { currency: cur, income: 0, expenses: 0 };
       if (txn.type === "income") {
         map[cur].income += txn.amount;
-      } else {
+      } else if (txn.type === "expense") {
         map[cur].expenses += txn.amount;
       }
     }

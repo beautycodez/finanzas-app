@@ -57,7 +57,7 @@ export default function IncomeStatementPage() {
       const catId = t.category_id;
       if (!actualMap[catId]) actualMap[catId] = { income: 0, expense: 0 };
       if (t.type === "income") actualMap[catId].income += t.amount;
-      else actualMap[catId].expense += t.amount;
+      else if (t.type === "expense") actualMap[catId].expense += t.amount;
     }
 
     // Calculate budget per category
