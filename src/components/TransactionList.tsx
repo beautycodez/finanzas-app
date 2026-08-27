@@ -8,6 +8,7 @@ import type { Transaction } from "@/types";
 export default function TransactionList() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [filter, setFilter] = useState<"all" | "income" | "expense" | "transfer">("all");
   const { from, to } = useDateFilter();
 
@@ -17,9 +18,10 @@ export default function TransactionList() {
 
   async function loadTransactions() {
     setLoading(true);
+    setError("");
     let query = supabase
       .from("transactions")
-      .select("*, categories(name, type, color), accounts(name)")
+      .select("id, account_id, category_id, amount, type, description, transfer_from, transfer_to, transaction_date, created_at, categories(name, type, color), accounts(id, name, currency)")
       .gte("transaction_date", from)
       .lte("transaction_date", to)
       .order("transaction_date", { ascending: false })
@@ -32,11 +34,15 @@ export default function TransactionList() {
     }
 
     const { data, error } = await query;
-    if (error) console.error("Error loading transactions:", error.message);
+    if (error) {
+      console.error("Error loading transactions:", error.message);
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
     if (data) {
-      const txns = data as Transaction[];
+      const txns = data as unknown as Transaction[];
       if (filter === "transfer") {
-        // Group transfers: pair expense+income with same description and date
         const grouped = groupTransfers(txns);
         setTransactions(grouped);
       } else {
@@ -180,6 +186,10 @@ export default function TransactionList() {
       <div className="divide-y divide-gray-50">
         {loading ? (
           <div className="p-8 text-center text-gray-400">Cargando...</div>
+        ) : error ? (
+          <div className="p-8 text-center text-red-600">
+            Error al cargar: {error}
+          </div>
         ) : transactions.length === 0 ? (
           <div className="p-8 text-center text-gray-400">No hay transacciones</div>
         ) : (
