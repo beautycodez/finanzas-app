@@ -140,7 +140,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-medium text-gray-700">Deudas de Tarjetas de Credito</p>
             <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
-              {creditDebts.length} {creditDebts.length === 1 ? "tarjeta" : "tarjetas"}
+              {creditDebts.reduce((acc, d) => acc + d.accounts.length, 0)} {creditDebts.reduce((acc, d) => acc + d.accounts.length, 0) === 1 ? "tarjeta con deuda" : "tarjetas con deuda"}
             </span>
           </div>
           <div className="space-y-3">
