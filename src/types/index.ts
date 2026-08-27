@@ -1,7 +1,7 @@
 export interface Account {
   id: number;
   name: string;
-  type: "checking" | "savings" | "credit_card" | "cash" | "investment";
+  type: "checking" | "savings" | "credit_card" | "cash" | "investment" | "payable";
   currency: string;
   balance: number;
   created_at: string;

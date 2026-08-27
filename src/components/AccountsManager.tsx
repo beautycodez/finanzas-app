@@ -10,6 +10,7 @@ const typeOptions = [
   { value: "credit_card", label: "Tarjeta de Credito" },
   { value: "cash", label: "Efectivo" },
   { value: "investment", label: "Inversiones" },
+  { value: "payable", label: "Deuda por Pagar" },
 ];
 
 const currencyOptions = [

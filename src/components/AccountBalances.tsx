@@ -11,6 +11,7 @@ const typeLabels: Record<string, string> = {
   credit_card: "Tarjeta de Credito",
   cash: "Efectivo",
   investment: "Inversiones",
+  payable: "Deuda por Pagar",
 };
 
 const typeColors: Record<string, string> = {
@@ -19,6 +20,7 @@ const typeColors: Record<string, string> = {
   credit_card: "bg-purple-500",
   cash: "bg-amber-500",
   investment: "bg-teal-500",
+  payable: "bg-red-500",
 };
 
 const currencySymbols: Record<string, string> = {
