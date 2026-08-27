@@ -7,6 +7,7 @@ import type { Transaction } from "@/types";
 
 export default function TransactionList() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [accounts, setAccounts] = useState<Record<number, { id: number; name: string; currency: string }>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<"all" | "income" | "expense" | "transfer">("all");
@@ -16,12 +17,17 @@ export default function TransactionList() {
     loadTransactions();
   }, [filter, from, to]);
 
+  function accountName(id: number | null) {
+    if (!id) return "?";
+    return accounts[id]?.name || `Cuenta ${id}`;
+  }
+
   async function loadTransactions() {
     setLoading(true);
     setError("");
     let query = supabase
       .from("transactions")
-      .select("id, account_id, category_id, amount, type, description, transfer_from, transfer_to, transaction_date, created_at, categories(name, type, color), accounts(id, name, currency)")
+      .select("id, account_id, category_id, amount, type, description, transfer_from, transfer_to, transaction_date, created_at, categories(name, type, color)")
       .gte("transaction_date", from)
       .lte("transaction_date", to)
       .order("transaction_date", { ascending: false })
@@ -33,7 +39,18 @@ export default function TransactionList() {
       query = query.eq("type", filter);
     }
 
-    const { data, error } = await query;
+    const [txRes, accRes] = await Promise.all([
+      query,
+      supabase.from("accounts").select("id, name, currency"),
+    ]);
+
+    if (accRes.data) {
+      const map: Record<number, { id: number; name: string; currency: string }> = {};
+      for (const a of accRes.data) map[a.id] = a;
+      setAccounts(map);
+    }
+
+    const { data, error } = txRes;
     if (error) {
       console.error("Error loading transactions:", error.message);
       setError(error.message);
@@ -215,8 +232,8 @@ export default function TransactionList() {
                     </p>
                     <p className="text-sm text-gray-500">
                       {transfer
-                        ? `${t.accounts?.name} → ${pair?.accounts?.name || "?"}`
-                        : t.accounts?.name}
+                        ? `${accountName(t.account_id)} → ${accountName(pair?.account_id ?? null)}`
+                        : accountName(t.account_id)}
                       {t.description ? ` · ${t.description}` : ""}
                     </p>
                   </div>

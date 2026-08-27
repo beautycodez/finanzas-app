@@ -23,21 +23,24 @@ export default function Dashboard() {
   async function loadSummary() {
     setLoading(true);
 
-    const [transactionsRes, accountsRes] = await Promise.all([
+    const [transactionsRes, accountsRes, accountMapRes] = await Promise.all([
       supabase
         .from("transactions")
-        .select("amount, type, transaction_date, accounts(currency)")
+        .select("account_id, amount, type, transaction_date")
         .gte("transaction_date", from)
         .lte("transaction_date", to),
       supabase.from("accounts").select("id"),
+      supabase.from("accounts").select("id, currency"),
     ]);
+
+    const curMap: Record<number, string> = {};
+    for (const a of accountMapRes.data || []) curMap[a.id] = a.currency;
 
     const txns = transactionsRes.data || [];
     const map: Record<string, CurrencySummary> = {};
 
     for (const txn of txns) {
-      const acct = Array.isArray(txn.accounts) ? txn.accounts[0] : txn.accounts;
-      const cur = (acct as { currency: string } | null)?.currency || "USD";
+      const cur = curMap[txn.account_id] || "USD";
       if (!map[cur]) map[cur] = { currency: cur, income: 0, expenses: 0 };
       if (txn.type === "income") {
         map[cur].income += txn.amount;
