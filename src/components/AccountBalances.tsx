@@ -34,6 +34,8 @@ const currencyNames: Record<string, string> = {
 export default function AccountBalances() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const VISIBLE_LIMIT = 5;
 
   useEffect(() => {
     loadAccounts();
@@ -55,6 +57,8 @@ export default function AccountBalances() {
   }
 
   const currencies = [...new Set(accounts.map((a) => a.currency || "USD"))];
+  const visibleCount = expanded ? accounts.length : Math.min(VISIBLE_LIMIT, accounts.length);
+  const hiddenCount = accounts.length - visibleCount;
 
   if (loading) {
     return <div className="text-center text-gray-400 py-4">Cargando cuentas...</div>;
@@ -65,7 +69,9 @@ export default function AccountBalances() {
       <h2 className="text-lg font-semibold text-gray-800">Mis Cuentas</h2>
 
       {currencies.map((cur) => {
-        const currencyAccounts = accounts.filter((a) => (a.currency || "USD") === cur);
+        const currencyAccounts = accounts
+          .filter((a) => (a.currency || "USD") === cur)
+          .slice(0, visibleCount);
         const total = currencyAccounts.reduce((sum, a) => sum + a.balance, 0);
 
         return (
@@ -107,6 +113,15 @@ export default function AccountBalances() {
           </div>
         );
       })}
+
+      {accounts.length > 0 && (
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="w-full mt-2 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+        >
+          {expanded ? "Ver menos" : `Ver mas (${hiddenCount} mas)`}
+        </button>
+      )}
 
       {accounts.length === 0 && (
         <p className="text-center text-gray-400 py-4">No hay cuentas creadas</p>

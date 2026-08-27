@@ -5,12 +5,14 @@ import { supabase } from "@/lib/supabase";
 import { useDateFilter } from "@/lib/dateFilter";
 import type { Transaction } from "@/types";
 
-export default function TransactionList() {
+type Filter = "all" | "income" | "expense" | "transfer";
+
+export default function TransactionList({ limit }: { limit?: number }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Record<number, { id: number; name: string; currency: string }>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState<"all" | "income" | "expense" | "transfer">("all");
+  const [filter, setFilter] = useState<Filter>("all");
   const { from, to } = useDateFilter();
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export default function TransactionList() {
       .gte("transaction_date", from)
       .lte("transaction_date", to)
       .order("transaction_date", { ascending: false })
-      .limit(100);
+      .limit(limit || 100);
 
     if (filter === "transfer") {
       query = query.eq("type", "transfer");
