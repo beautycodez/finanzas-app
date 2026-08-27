@@ -10,9 +10,16 @@ interface CurrencySummary {
   expenses: number;
 }
 
+interface CreditDebt {
+  currency: string;
+  total: number;
+  accounts: { id: number; name: string; balance: number }[];
+}
+
 export default function Dashboard() {
   const [summaries, setSummaries] = useState<CurrencySummary[]>([]);
   const [accountCount, setAccountCount] = useState(0);
+  const [creditDebts, setCreditDebts] = useState<CreditDebt[]>([]);
   const [loading, setLoading] = useState(true);
   const { from, to } = useDateFilter();
 
@@ -23,7 +30,7 @@ export default function Dashboard() {
   async function loadSummary() {
     setLoading(true);
 
-    const [transactionsRes, accountsRes, accountMapRes] = await Promise.all([
+    const [transactionsRes, accountsRes, accountMapRes, creditRes] = await Promise.all([
       supabase
         .from("transactions")
         .select("account_id, amount, type, transaction_date")
@@ -31,6 +38,11 @@ export default function Dashboard() {
         .lte("transaction_date", to),
       supabase.from("accounts").select("id"),
       supabase.from("accounts").select("id, currency"),
+      supabase
+        .from("accounts")
+        .select("id, name, currency, balance")
+        .eq("type", "credit_card")
+        .order("name"),
     ]);
 
     const curMap: Record<number, string> = {};
@@ -49,7 +61,19 @@ export default function Dashboard() {
       }
     }
 
+    // Sum credit card debt by currency
+    const debtMap: Record<string, CreditDebt> = {};
+    for (const acc of creditRes.data || []) {
+      const cur = acc.currency || "USD";
+      if (!debtMap[cur]) debtMap[cur] = { currency: cur, total: 0, accounts: [] };
+      // Balance is negative when you owe; show absolute value as debt
+      const debt = acc.balance < 0 ? Math.abs(acc.balance) : 0;
+      debtMap[cur].total += debt;
+      debtMap[cur].accounts.push({ id: acc.id, name: acc.name, balance: acc.balance });
+    }
+
     setSummaries(Object.values(map));
+    setCreditDebts(Object.values(debtMap).filter((d) => d.total > 0));
     setAccountCount(accountsRes.data?.length || 0);
     setLoading(false);
   }
@@ -109,6 +133,37 @@ export default function Dashboard() {
             </div>
           </div>
         ))
+      )}
+
+      {creditDebts.length > 0 && (
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-red-100 border-l-4 border-l-red-500">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium text-gray-700">Deudas de Tarjetas de Credito</p>
+            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+              {creditDebts.length} {creditDebts.length === 1 ? "tarjeta" : "tarjetas"}
+            </span>
+          </div>
+          <div className="space-y-3">
+            {creditDebts.map((d) => (
+              <div key={d.currency}>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-500">{d.currency === "PEN" ? "Soles (S/)" : "Dolares ($)"}</p>
+                  <p className="text-xl font-bold text-red-600">
+                    {formatCurrency(d.total, d.currency)}
+                  </p>
+                </div>
+                <div className="mt-1">
+                  {d.accounts.map((a) => (
+                    <div key={a.id} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">{a.name}</span>
+                      <span className="text-gray-700 font-medium">{formatCurrency(a.balance, d.currency)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center">
