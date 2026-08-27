@@ -27,8 +27,8 @@ export default function TransactionForm({ onTransactionAdded }: Props) {
 
   async function loadData() {
     const [accountsRes, categoriesRes] = await Promise.all([
-      supabase.from("accounts").select("*"),
-      supabase.from("categories").select("*"),
+      supabase.from("accounts").select("*").order("name"),
+      supabase.from("categories").select("*").order("name"),
     ]);
     if (accountsRes.error) console.error("Error loading accounts:", accountsRes.error.message);
     if (categoriesRes.error) console.error("Error loading categories:", categoriesRes.error.message);
