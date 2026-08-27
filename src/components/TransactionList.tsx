@@ -23,7 +23,6 @@ export default function TransactionList() {
       .gte("transaction_date", from)
       .lte("transaction_date", to)
       .order("transaction_date", { ascending: false })
-      .order("created_at", { ascending: false })
       .limit(100);
 
     if (filter === "transfer") {
