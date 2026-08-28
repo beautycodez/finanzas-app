@@ -126,10 +126,13 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* User + logout */}
-            <span className="text-xs text-gray-500 hidden sm:inline max-w-[120px] truncate">
-              {user.email}
-            </span>
+            {/* User avatar + logout */}
+            <div
+              className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold uppercase shrink-0"
+              title={user.email}
+            >
+              {user.email ? user.email.charAt(0) : "?"}
+            </div>
             <button
               onClick={signOut}
               className="p-2 text-gray-500 hover:text-red-500 hover:bg-gray-100 rounded-lg transition-colors"
