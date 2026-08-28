@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useDateFilter } from "@/lib/dateFilter";
 import { formatDateShort } from "@/lib/dateFormat";
+import Modal from "@/components/Modal";
+import EditTransactionForm from "@/components/EditTransactionForm";
 import type { Transaction } from "@/types";
 
 type Filter = "all" | "income" | "expense" | "transfer";
@@ -14,6 +16,7 @@ export default function TransactionList({ limit }: { limit?: number }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [editTarget, setEditTarget] = useState<{ txn: Transaction; pair?: Transaction } | null>(null);
   const { from, to } = useDateFilter();
 
   useEffect(() => {
@@ -246,21 +249,42 @@ export default function TransactionList({ limit }: { limit?: number }) {
                     </p>
                     <p className="text-xs text-gray-400">{formatDate(t.transaction_date)}</p>
                   </div>
-                  <button
-                    onClick={() => handleDelete(t.id)}
-                    className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                    title="Eliminar"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setEditTarget({ txn: t, pair })}
+                      className="text-gray-400 hover:text-blue-500 transition-colors p-1"
+                      title="Editar"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(t.id)}
+                      className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                      title="Eliminar"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
           })
         )}
       </div>
+
+      <Modal open={!!editTarget} title="Editar Transaccion" onClose={() => setEditTarget(null)}>
+        {editTarget && (
+          <EditTransactionForm
+            transaction={editTarget.txn}
+            pair={editTarget.pair}
+            onSaved={() => { setEditTarget(null); loadTransactions(); }}
+          />
+        )}
+      </Modal>
     </div>
   );
 }
