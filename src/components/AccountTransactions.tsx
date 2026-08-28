@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { formatDateShort } from "@/lib/dateFormat";
 import type { Transaction } from "@/types";
 
 interface Props {
@@ -102,11 +103,7 @@ export default function AccountTransactions({ accountId, currency = "USD" }: Pro
   }
 
   function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+    return formatDateShort(dateStr);
   }
 
   function groupByDate(txns: Transaction[]) {

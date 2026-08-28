@@ -92,7 +92,12 @@ export default function GoalsPage() {
 
   function daysLeft(deadline: string | null) {
     if (!deadline) return null;
-    const diff = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    const [y, m, d] = deadline.split("-").map(Number);
+    if (!y || !m || !d) return null;
+    const target = new Date(y, m - 1, d);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     return diff;
   }
 

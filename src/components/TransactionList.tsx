@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useDateFilter } from "@/lib/dateFilter";
+import { formatDateShort } from "@/lib/dateFormat";
 import type { Transaction } from "@/types";
 
 type Filter = "all" | "income" | "expense" | "transfer";
@@ -165,11 +166,7 @@ export default function TransactionList({ limit }: { limit?: number }) {
   }
 
   function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+    return formatDateShort(dateStr);
   }
 
   function isTransfer(t: Transaction) {
