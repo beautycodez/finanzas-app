@@ -18,6 +18,8 @@ interface DateFilterContextType {
   setFrom: (v: string) => void;
   setTo: (v: string) => void;
   setPreset: (preset: string) => void;
+  activePreset: string | null;
+  clearPreset: () => void;
 }
 
 const DateFilterContext = createContext<DateFilterContextType>({
@@ -26,12 +28,15 @@ const DateFilterContext = createContext<DateFilterContextType>({
   setFrom: () => {},
   setTo: () => {},
   setPreset: () => {},
+  activePreset: null,
+  clearPreset: () => {},
 });
 
 export function DateFilterProvider({ children }: { children: ReactNode }) {
   const defaults = getDefaultRange();
   const [from, setFrom] = useState(defaults.from);
   const [to, setTo] = useState(defaults.to);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
 
   function setPreset(preset: string) {
     const now = new Date();
@@ -86,10 +91,16 @@ export function DateFilterProvider({ children }: { children: ReactNode }) {
         break;
       }
     }
+
+    setActivePreset(preset);
+  }
+
+  function clearPreset() {
+    setActivePreset(null);
   }
 
   return (
-    <DateFilterContext.Provider value={{ from, to, setFrom, setTo, setPreset }}>
+    <DateFilterContext.Provider value={{ from, to, setFrom, setTo, setPreset, activePreset, clearPreset }}>
       {children}
     </DateFilterContext.Provider>
   );

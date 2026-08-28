@@ -32,7 +32,7 @@ const presets = [
 export default function Navbar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
-  const { from, to, setFrom, setTo, setPreset } = useDateFilter();
+  const { from, to, setFrom, setTo, setPreset, activePreset, clearPreset } = useDateFilter();
   const [showDates, setShowDates] = useState(false);
 
   const formatDate = formatDateShort;
@@ -85,7 +85,11 @@ export default function Navbar() {
                       <button
                         key={p.value}
                         onClick={() => { setPreset(p.value); setShowDates(false); }}
-                        className="px-2.5 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-blue-100 hover:text-blue-700 transition-colors"
+                        className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
+                          activePreset === p.value
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-700"
+                        }`}
                       >
                         {p.label}
                       </button>
@@ -100,7 +104,7 @@ export default function Navbar() {
                         <input
                           type="date"
                           value={from}
-                          onChange={(e) => setFrom(e.target.value)}
+                          onChange={(e) => { setFrom(e.target.value); clearPreset(); }}
                           className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-800 focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
@@ -109,7 +113,7 @@ export default function Navbar() {
                         <input
                           type="date"
                           value={to}
-                          onChange={(e) => setTo(e.target.value)}
+                          onChange={(e) => { setTo(e.target.value); clearPreset(); }}
                           className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-800 focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
