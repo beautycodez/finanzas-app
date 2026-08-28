@@ -35,7 +35,7 @@ export default function Navbar() {
   const [showDates, setShowDates] = useState(false);
 
   return (
-    <nav className="bg-white border-b border-gray-200 px-4 py-3">
+    <nav className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-40 shadow-sm">
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
         <Link href="/" className="text-xl font-bold text-blue-600 shrink-0">
           Finanzas

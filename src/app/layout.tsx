@@ -5,7 +5,7 @@ import { AuthProvider } from "@/lib/auth";
 import { DateFilterProvider } from "@/lib/dateFilter";
 import AuthGuard from "@/components/AuthGuard";
 import Navbar from "@/components/Navbar";
-import FloatingAddButton from "@/components/FloatingAddButton";
+import AddMenu from "@/components/AddMenu";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
                 {children}
               </main>
-              <FloatingAddButton />
+              <AddMenu />
             </AuthGuard>
           </DateFilterProvider>
         </AuthProvider>
