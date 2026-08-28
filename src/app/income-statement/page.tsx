@@ -89,7 +89,6 @@ export default function IncomeStatementPage() {
     for (const cat of incomeCategories) {
       const actual = actualMap[cat.id]?.income || 0;
       const budgeted = budgetMap[cat.id] || 0;
-      if (actual === 0 && budgeted === 0) continue;
       totalIncomeBudgeted += budgeted;
       totalIncomeActual += actual;
       newRows.push({
@@ -123,7 +122,6 @@ export default function IncomeStatementPage() {
     for (const cat of expenseCategories) {
       const actual = actualMap[cat.id]?.expense || 0;
       const budgeted = budgetMap[cat.id] || 0;
-      if (actual === 0 && budgeted === 0) continue;
       totalExpenseBudgeted += budgeted;
       totalExpenseActual += actual;
       newRows.push({
