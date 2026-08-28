@@ -36,7 +36,7 @@ export function DateFilterProvider({ children }: { children: ReactNode }) {
   const defaults = getDefaultRange();
   const [from, setFrom] = useState(defaults.from);
   const [to, setTo] = useState(defaults.to);
-  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [activePreset, setActivePreset] = useState<string | null>("month");
 
   function setPreset(preset: string) {
     const now = new Date();

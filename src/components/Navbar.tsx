@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useDateFilter } from "@/lib/dateFilter";
 import { formatDateShort } from "@/lib/dateFormat";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4" },
@@ -34,6 +34,17 @@ export default function Navbar() {
   const { user, signOut } = useAuth();
   const { from, to, setFrom, setTo, setPreset, activePreset, clearPreset } = useDateFilter();
   const [showDates, setShowDates] = useState(false);
+  const dateRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dateRef.current && !dateRef.current.contains(e.target as Node)) {
+        setShowDates(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   const formatDate = formatDateShort;
 
@@ -65,7 +76,7 @@ export default function Navbar() {
         {user && (
           <div className="flex items-center gap-2 shrink-0">
             {/* Date filter toggle */}
-            <div className="relative">
+            <div className="relative" ref={dateRef}>
               <button
                 onClick={() => setShowDates(!showDates)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
