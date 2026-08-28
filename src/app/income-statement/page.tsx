@@ -20,8 +20,6 @@ export default function IncomeStatementPage() {
   const [loading, setLoading] = useState(true);
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
-  const [incomeBudgetOverride, setIncomeBudgetOverride] = useState<number | null>(null);
-  const [expenseBudgetOverride, setExpenseBudgetOverride] = useState<number | null>(null);
   const { from, to } = useDateFilter();
 
   useEffect(() => {
@@ -39,7 +37,7 @@ export default function IncomeStatementPage() {
         .lte("transaction_date", to),
       supabase
         .from("budgets")
-        .select("category_id, amount, year, month, scope")
+        .select("category_id, amount, year, month")
         .gte("year", new Date(from).getFullYear())
         .lte("year", new Date(to).getFullYear()),
       supabase
@@ -64,19 +62,9 @@ export default function IncomeStatementPage() {
 
     // Calculate budget per category
     const budgetMap: Record<number, number> = {};
-    let incOverride: number | null = null;
-    let expOverride: number | null = null;
     for (const b of budgets) {
-      if (b.scope === "total-income" && b.category_id == null) {
-        incOverride = (incOverride || 0) + b.amount;
-      } else if (b.scope === "total-expense" && b.category_id == null) {
-        expOverride = (expOverride || 0) + b.amount;
-      } else if (b.category_id != null) {
-        budgetMap[b.category_id] = (budgetMap[b.category_id] || 0) + b.amount;
-      }
+      budgetMap[b.category_id] = (budgetMap[b.category_id] || 0) + b.amount;
     }
-    setIncomeBudgetOverride(incOverride);
-    setExpenseBudgetOverride(expOverride);
 
     // Build rows
     const newRows: Row[] = [];
@@ -107,7 +95,7 @@ export default function IncomeStatementPage() {
       id: "total-income",
       category: "Total Ingresos",
       color: "#22c55e",
-      budgeted: incOverride != null ? incOverride : totalIncomeBudgeted,
+      budgeted: totalIncomeBudgeted,
       actual: totalIncomeActual,
       isCategory: false,
       isTotal: true,
@@ -140,7 +128,7 @@ export default function IncomeStatementPage() {
       id: "total-expense",
       category: "Total Gastos",
       color: "#ef4444",
-      budgeted: expOverride != null ? expOverride : totalExpenseBudgeted,
+      budgeted: totalExpenseBudgeted,
       actual: totalExpenseActual,
       isCategory: false,
       isTotal: true,
@@ -172,40 +160,13 @@ export default function IncomeStatementPage() {
     const numValue = Number(editValue) || 0;
 
     if (field === "budgeted") {
-      const now = new Date();
-      const month = now.getMonth() + 1;
-      const year = now.getFullYear();
+      // Save to budgets table
       const parts = rowId.split("-");
-
-      if (rowId === "total-income" || rowId === "total-expense") {
-        // Save a total override (scope = 'total-income' / 'total-expense', category_id = null)
-        const scope = rowId === "total-income" ? "total-income" : "total-expense";
-        const { data: existing } = await supabase
-          .from("budgets")
-          .select("id")
-          .is("category_id", null)
-          .eq("scope", scope)
-          .eq("year", year)
-          .eq("month", month)
-          .single();
-
-        if (existing) {
-          await supabase.from("budgets").update({ amount: numValue }).eq("id", existing.id);
-        } else {
-          await supabase.from("budgets").insert({
-            category_id: null,
-            amount: numValue,
-            period: "monthly",
-            year,
-            month,
-            scope,
-          });
-        }
-
-        if (rowId === "total-income") setIncomeBudgetOverride(numValue);
-        else setExpenseBudgetOverride(numValue);
-      } else if (parts[0] === "inc" || parts[0] === "exp") {
+      if (parts[0] === "inc" || parts[0] === "exp") {
         const catId = Number(parts[1]);
+        const now = new Date();
+        const month = now.getMonth() + 1;
+        const year = now.getFullYear();
 
         const { data: existing } = await supabase
           .from("budgets")
@@ -340,9 +301,7 @@ export default function IncomeStatementPage() {
             {rows.filter((r) => r.id === "total-income").map((row) => (
               <tr key={row.id} className="bg-green-100 border-b border-green-200 font-bold">
                 <td className="px-4 py-3 text-green-900">{row.category}</td>
-                <Cell value={row.budgeted} rowId={row.id} field="budgeted" editingCell={editingCell} editValue={editValue}
-                  onStartEdit={startEdit} onSave={saveEdit} onKey={handleKeyDown} onChange={setEditValue}
-                  className="text-right px-4 py-3 text-green-900" />
+                <td className="text-right px-4 py-3 text-green-900">{fmt(row.budgeted)}</td>
                 <td className="text-right px-4 py-3 text-green-900">{fmt(row.actual)}</td>
                 <td className={`text-right px-4 py-3 ${variance(row.budgeted, row.actual) >= 0 ? "text-green-900" : "text-red-700"}`}>
                   {variance(row.budgeted, row.actual) >= 0 ? "+" : ""}{fmt(variance(row.budgeted, row.actual))}
@@ -389,9 +348,7 @@ export default function IncomeStatementPage() {
             {rows.filter((r) => r.id === "total-expense").map((row) => (
               <tr key={row.id} className="bg-red-100 border-b border-red-200 font-bold">
                 <td className="px-4 py-3 text-red-900">{row.category}</td>
-                <Cell value={row.budgeted} rowId={row.id} field="budgeted" editingCell={editingCell} editValue={editValue}
-                  onStartEdit={startEdit} onSave={saveEdit} onKey={handleKeyDown} onChange={setEditValue}
-                  className="text-right px-4 py-3 text-red-900" />
+                <td className="text-right px-4 py-3 text-red-900">{fmt(row.budgeted)}</td>
                 <td className="text-right px-4 py-3 text-red-900">{fmt(row.actual)}</td>
                 <td className={`text-right px-4 py-3 ${variance(row.budgeted, row.actual) <= 0 ? "text-green-900" : "text-red-700"}`}>
                   {variance(row.budgeted, row.actual) >= 0 ? "+" : ""}{fmt(variance(row.budgeted, row.actual))}
@@ -432,7 +389,7 @@ export default function IncomeStatementPage() {
 
 // Editable cell component
 function Cell({
-  value, rowId, field, editingCell, editValue, onStartEdit, onSave, onKey, onChange, className,
+  value, rowId, field, editingCell, editValue, onStartEdit, onSave, onKey, onChange,
 }: {
   value: number;
   rowId: string;
@@ -443,7 +400,6 @@ function Cell({
   onSave: (rowId: string, field: "budgeted" | "actual") => void;
   onKey: (e: React.KeyboardEvent, rowId: string, field: "budgeted" | "actual") => void;
   onChange: (v: string) => void;
-  className?: string;
 }) {
   const cellId = `${rowId}-${field}`;
   const isEditing = editingCell === cellId;
@@ -472,7 +428,7 @@ function Cell({
 
   return (
     <td
-      className={className || `text-right px-4 py-2.5 ${isBudgeted ? "cursor-pointer hover:bg-blue-50 text-gray-600" : "text-gray-800"}`}
+      className={`text-right px-4 py-2.5 ${isBudgeted ? "cursor-pointer hover:bg-blue-50 text-gray-600" : "text-gray-800"}`}
       onClick={() => isBudgeted && onStartEdit(rowId, field, value)}
       title={isBudgeted ? "Click para editar" : undefined}
     >
