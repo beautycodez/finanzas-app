@@ -42,7 +42,7 @@ export default function BudgetsPage() {
         .lte("transaction_date", lastDay),
     ]);
 
-    if (budgetsRes.data) setBudgets(budgetsRes.data as Budget[]);
+    if (budgetsRes.data) setBudgets((budgetsRes.data as Budget[]).filter((b) => b.category_id != null));
     if (categoriesRes.data) {
       setCategories(categoriesRes.data as Category[]);
       setExpenseCategories(categoriesRes.data as Category[]);
@@ -172,9 +172,9 @@ export default function BudgetsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {budgets.map((b) => {
+          {budgets.filter((b) => b.category_id != null).map((b) => {
             const cat = Array.isArray(b.categories) ? b.categories[0] : b.categories;
-            const used = spent[b.category_id] || 0;
+            const used = spent[b.category_id as number] || 0;
             const pct = b.amount > 0 ? Math.min((used / b.amount) * 100, 100) : 0;
             const remaining = b.amount - used;
             const isOver = used > b.amount;

@@ -32,11 +32,12 @@ export interface Transaction {
 
 export interface Budget {
   id: number;
-  category_id: number;
+  category_id: number | null;
   amount: number;
   period: "monthly" | "yearly";
   year: number;
   month: number | null;
+  scope?: string;
   categories?: Category;
 }
 
